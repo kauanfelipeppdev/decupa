@@ -244,6 +244,24 @@ test("cep: só marcar cria marcadores numerados com início e fim", () => {
   assert.equal(p.tracks.video[0].length, 1); // nada cortado
 });
 
+test("cep: decupa.jsx só usa sintaxe que o ExtendScript (ES3) aceita", () => {
+  // Tira comentários e strings para não acusar texto, só código.
+  const code = JSX.replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "")
+    .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""');
+  const forbidden = [
+    [/,\s*[}\]]/, "vírgula sobrando antes de } ou ]"],
+    [/\b(let|const|class)\s/, "let/const/class"],
+    [/=>/, "arrow function"],
+    [/`/, "template string"],
+    [/\.\.\./, "spread/rest"],
+  ];
+  for (const [re, what] of forbidden) {
+    const m = code.match(re);
+    assert.equal(m, null, `${what} em decupa.jsx: ...${m && code.slice(m.index - 40, m.index + 20)}...`);
+  }
+});
+
 test("cep: lib/silence.js é a mesma cópia do plugin UXP", () => {
   const a = fs.readFileSync(path.join(__dirname, "../plugin/lib/silence.js"), "utf8");
   const b = fs.readFileSync(path.join(__dirname, "../cep/lib/silence.js"), "utf8");

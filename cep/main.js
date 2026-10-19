@@ -284,5 +284,12 @@ try {
 showPreset();
 updateLabels();
 updateThresholdMode();
-refreshSelection();
-setInterval(refreshSelection, 1000);
+
+// Se o ExtendScript não carregou, nada funciona: avisa logo na abertura.
+host("decupa_hostInfo").then(
+  () => {
+    refreshSelection();
+    setInterval(refreshSelection, 1000);
+  },
+  (err) => setStatus(`O script do Decupa não carregou no Premiere: ${err.message}`, true)
+);

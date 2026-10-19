@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Decupa (versão CEP): tudo que roda dentro do Premiere, em ExtendScript.
  *
  * ExtendScript é ES3: sem JSON nativo, sem Array.prototype.indexOf, sem let/const.
@@ -103,7 +103,7 @@ function decupa_getSelection() {
       clips: clips,
       start: start,
       end: end,
-      trackIndices: trackIndices,
+      trackIndices: trackIndices
     });
   } catch (e) {
     return decupa_err(e);
