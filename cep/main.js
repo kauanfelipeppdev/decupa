@@ -284,6 +284,7 @@ try {
 showPreset();
 updateLabels();
 updateThresholdMode();
+setBusy(false);
 
 // Se o ExtendScript não carregou, nada funciona: avisa logo na abertura.
 host("decupa_hostInfo").then(
