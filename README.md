@@ -125,6 +125,8 @@ ZXPSIGNCMD=/caminho/ZXPSignCmd npm run package:cep
 
 O script cria um certificado autoassinado em `cert/` (fora do git) na primeira vez e gera `dist/Decupa.zxp`.
 
+> **Suba a versão a cada novo `.zxp`** (`ExtensionBundleVersion` e `Version` em `cep/CSXS/manifest.xml`). O instalador da Adobe diz "Installation Successful" mas **não substitui** os arquivos se a versão for a mesma que já está instalada.
+
 ### Versão UXP
 
 1. Abra o Premiere Pro.

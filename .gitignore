@@ -6,3 +6,5 @@ dist/
 cert/
 *.zxp
 *.p12
+/*.png
+/*.jpg
