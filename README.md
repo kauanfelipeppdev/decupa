@@ -1,12 +1,23 @@
 # Decupa
 
-Plugin **gratuito e open source** para Adobe Premiere Pro que faz a decupagem automática: detecta e remove os silêncios da sequência ativa, direto num painel dentro do Premiere.
+Plugin **gratuito e open source** para Adobe Premiere Pro que faz a decupagem automática: detecta e remove os silêncios do clipe selecionado, direto num painel dentro do Premiere.
 
-> Status: **v0.1, protótipo.** A detecção de silêncio está testada. A parte que edita a timeline segue a API oficial da Adobe, mas ainda precisa ser validada dentro do Premiere.
+> Status: **v0.3, protótipo.** A detecção de silêncio e a lógica de corte estão testadas contra um Premiere simulado, mas ainda precisam ser validadas dentro do Premiere de verdade.
+
+## Qual versão usar
+
+O Decupa vem em duas versões, com a mesma interface e a mesma detecção de silêncio:
+
+| Seu Premiere | Versão | Arquivo | Como corta |
+| --- | --- | --- | --- |
+| **Até 27.0** (ex.: 26.2) | **CEP** (pasta `cep/`) | `Decupa.zxp` | razor do QE DOM, via ExtendScript |
+| **27.1 ou mais novo** | **UXP** (pasta `plugin/`) | `Decupa.ccx` | API oficial de razor do UXP |
+
+Na dúvida, use a **versão CEP** (`.zxp`): ela também funciona nas versões mais novas enquanto a Adobe mantiver o CEP no Premiere. Para ver sua versão: *Ajuda > Sobre o Premiere Pro*.
 
 ## Como funciona
 
-1. **Selecione o clipe** que quer decupar na timeline (por exemplo, o clipe principal com câmera + voz). O painel detecta a seleção sozinho e mostra o nome e o trecho do clipe. Sem nada selecionado, o botão fica desativado.
+1. **Selecione o clipe** que quer decupar na timeline (por exemplo, o clipe principal com câmera + voz). O painel detecta a seleção sozinho e mostra o nome e o trecho do clipe. Sem nada selecionado, o botão pede para você selecionar um clipe.
 2. Clique em **Decupar clipe selecionado**. O plugin:
    - exporta só o áudio desse clipe como WAV, usando o próprio Premiere (as outras trilhas de áudio ficam mutadas durante a exportação e voltam ao estado original depois, então música e efeitos não atrapalham);
    - analisa o áudio em JavaScript puro: nível em dB a cada 10 ms, regiões abaixo do limiar, margens e filtro de ruídos curtos. Com **Automático** marcado, o limiar é calculado a partir do próprio clipe;
@@ -18,36 +29,43 @@ Plugin **gratuito e open source** para Adobe Premiere Pro que faz a decupagem au
 
 Por padrão, o plugin trabalha numa **cópia da sequência**, então a original fica intacta.
 
-> **Limitação conhecida:** a API de corte do Premiere corta **todas as trilhas** no mesmo instante. Se houver outra coisa no mesmo trecho do clipe (uma música numa trilha de baixo, por exemplo), ela também será cortada nesses pontos. Para o caso de um clipe principal sozinho na timeline, isso não faz diferença.
+> **Limitação conhecida:** o corte é feito em **todas as trilhas** no mesmo instante. Se houver outra coisa no mesmo trecho do clipe (uma música numa trilha de baixo, por exemplo), ela também será cortada nesses pontos. Para o caso de um clipe principal sozinho na timeline, isso não faz diferença.
 
-## Requisitos
-
-- Premiere Pro **25.6+** para o painel e o modo "Só marcar".
-- Premiere Pro **27.1+** para cortar ou remover (API de razor). Em versões anteriores (ex.: 26.2) o painel avisa e usa o modo "Só marcar".
-- [UXP Developer Tool (UDT)](https://developer.adobe.com/premiere-pro/uxp/introduction/), instalado pelo Creative Cloud, para carregar o plugin em desenvolvimento.
+> **Trava de segurança (CEP):** depois de cada remoção, o plugin confere se a sequência encolheu. Se o Premiere não fechar o buraco, ele para na hora e avisa, em vez de seguir e dessincronizar a timeline.
 
 ## Instalação (usuário final)
 
-Baixe o arquivo `Decupa.ccx` na página de [**Releases**](https://github.com/kauanfelipeppdev/decupa/releases/latest) do GitHub.
+Baixe o arquivo da sua versão (veja a tabela acima) na página de [**Releases**](https://github.com/kauanfelipeppdev/decupa/releases/latest) do GitHub.
 
 ### Com o ZXP/UXP Installer (recomendado)
 
-O [ZXP/UXP Installer](https://aescripts.com/learn/zxp-installer/) da aescripts é gratuito, funciona no Windows e no macOS e instala arquivos `.ccx` de qualquer desenvolvedor.
+O [ZXP/UXP Installer](https://aescripts.com/learn/zxp-installer/) da aescripts é gratuito, funciona no Windows e no macOS e instala tanto `.zxp` (CEP) quanto `.ccx` (UXP) de qualquer desenvolvedor.
 
 1. Baixe e instale o programa pelo link: <https://aescripts.com/learn/zxp-installer/>.
 2. Abra o Premiere Pro ao menos uma vez e **feche-o** antes de instalar.
-3. Abra o ZXP/UXP Installer e **arraste o `Decupa.ccx`** para a janela do programa (ou use *File > Open* e escolha o arquivo).
+3. Abra o ZXP/UXP Installer e **arraste o `Decupa.zxp`** (ou o `Decupa.ccx`) para a janela do programa (ou use *File > Open* e escolha o arquivo).
    - No Windows, não arraste direto de dentro de um `.zip`: extraia antes (por exemplo, na Área de Trabalho).
 4. Se aparecer o aviso "no compatible applications were found", clique em **Install** mesmo assim.
-5. Abra o Premiere e procure o painel em *Janela > Plug-ins UXP > Decupa*.
+5. Abra o Premiere e procure o painel:
+   - **CEP (`.zxp`):** *Janela > Extensões > Decupa*.
+   - **UXP (`.ccx`):** *Janela > Plug-ins UXP > Decupa*.
 
 Se o instalador travar ou falhar, atualize o app Creative Cloud: o ZXP/UXP Installer usa o instalador de plugins da Adobe (UPIA) por baixo. Mais ajuda no [FAQ oficial](https://aescripts.com/knowledgebase/index/view/faq/zxp-installer-faq).
 
-### Com o app Creative Cloud
+**Painel CEP em branco depois de instalar?** É um problema conhecido da Adobe com extensões assinadas fora do Marketplace ([detalhes](https://github.com/Adobe-CEP/CEP-Resources/blob/master/ZXPSignCMD/KnownIssue2024.md)). Ative o modo de depuração do CEP e reabra o Premiere. No Windows, rode no Prompt de Comando:
+
+```bat
+reg add HKCU\Software\Adobe\CSXS.11 /v PlayerDebugMode /t REG_SZ /d 1 /f
+reg add HKCU\Software\Adobe\CSXS.12 /v PlayerDebugMode /t REG_SZ /d 1 /f
+```
+
+No macOS: `defaults write com.adobe.CSXS.11 PlayerDebugMode 1` e `defaults write com.adobe.CSXS.12 PlayerDebugMode 1`.
+
+### `.ccx` com o app Creative Cloud
 
 Dê dois cliques no `.ccx` e confirme em **Instalar**. O painel aparece em *Janela > Plug-ins UXP > Decupa*.
 
-### Sem o app Creative Cloud (linha de comando)
+### `.ccx` sem o app Creative Cloud (linha de comando)
 
 A Adobe também oferece um instalador de linha de comando, o **UPIA** (Unified Plugin Installer Agent), que instala `.ccx` sem abrir o app Creative Cloud. Ele fica junto dos componentes do Creative Cloud, então precisa existir na máquina.
 
@@ -75,22 +93,11 @@ Outros comandos úteis (no macOS, troque `/` por `--`):
 | Desinstalar | `UnifiedPluginInstallerAgent.exe /remove "Decupa"` |
 | Ajuda | `UnifiedPluginInstallerAgent.exe /help` |
 
-Depois, abra o Premiere e procure o painel em *Janela > Plug-ins UXP > Decupa*.
-
-Se a pasta do UPIA não existir na sua máquina, o jeito é usar o app Creative Cloud ou o UXP Developer Tool (veja abaixo).
-
 Documentação oficial: [Install plugins using UPIA](https://helpx.adobe.com/creative-cloud/apps/integration-with-other-apps/manage-plugins/install-plugins-using-upia-tool.html).
-
-## Instalação (desenvolvimento)
-
-1. Abra o Premiere Pro.
-2. Abra o **UXP Developer Tool**, clique em **Add Plugin** e selecione `plugin/manifest.json`.
-3. Clique em **Load**. O painel aparece em *Janela > Plug-ins UXP > Decupa*.
-4. Depois de editar o código, use **Reload** no UDT.
 
 ## Preset de áudio WAV (uma vez só)
 
-O plugin precisa de um preset de exportação que gere WAV:
+As duas versões precisam de um preset de exportação que gere WAV:
 
 1. No Premiere, abra *Arquivo > Exportar > Mídia*.
 2. Em **Formato**, escolha **Waveform Audio**.
@@ -98,18 +105,53 @@ O plugin precisa de um preset de exportação que gere WAV:
 4. Salve o preset (ícone de salvar ao lado de "Predefinição") e exporte o `.epr` para uma pasta fácil de achar.
 5. No painel, clique em **Escolher…** e selecione esse `.epr`. O caminho fica salvo para as próximas vezes.
 
+## Desenvolvimento
+
+### Versão CEP
+
+1. Ative o modo de depuração do CEP (comandos `reg add` / `defaults write` acima).
+2. Crie um link da pasta `cep/` dentro da pasta de extensões do usuário. No Windows (Prompt de Comando):
+   ```bat
+   mklink /J "%APPDATA%\Adobe\CEP\extensions\decupa" "C:\caminho\para\decupa\cep"
+   ```
+   No macOS: `ln -s /caminho/para/decupa/cep ~/Library/Application\ Support/Adobe/CEP/extensions/decupa`.
+3. Abra o Premiere: o painel aparece em *Janela > Extensões > Decupa*. Depois de editar o código, feche e reabra o painel.
+
+Para gerar o `.zxp` assinado, baixe o [ZXPSignCmd](https://github.com/Adobe-CEP/CEP-Resources/tree/master/ZXPSignCMD) da Adobe e rode:
+
+```bash
+ZXPSIGNCMD=/caminho/ZXPSignCmd npm run package:cep
+```
+
+O script cria um certificado autoassinado em `cert/` (fora do git) na primeira vez e gera `dist/Decupa.zxp`.
+
+### Versão UXP
+
+1. Abra o Premiere Pro.
+2. Abra o [**UXP Developer Tool**](https://developer.adobe.com/premiere-pro/uxp/introduction/), clique em **Add Plugin** e selecione `plugin/manifest.json`.
+3. Clique em **Load**. O painel aparece em *Janela > Plug-ins UXP > Decupa*.
+4. Depois de editar o código, use **Reload** no UDT.
+
 ## Estrutura
 
 ```
-plugin/                 ← o que o UDT carrega
+cep/                    ← versão CEP (Premiere até 27.0)
+  CSXS/manifest.xml
+  index.html, styles.css
+  main.js               ← interface do painel
+  host/decupa.jsx       ← ExtendScript: seleção, exportação, razor do QE, ripple
+  lib/silence.js        ← cópia de plugin/lib/silence.js
+plugin/                 ← versão UXP (Premiere 27.1+)
   manifest.json
   index.html, styles.css
   main.js               ← interface do painel
   lib/silence.js        ← detecção (JS puro, sem Premiere)
   lib/premiere.js       ← exportação de áudio e edição da timeline
-  icons/
+scripts/package-cep.js  ← gera o .zxp assinado
 test/                   ← testes com Node (node --test)
 ```
+
+`plugin/lib/silence.js` é a fonte da detecção. O `package:cep` copia ele para `cep/lib/` e um teste falha se as duas cópias ficarem diferentes.
 
 ## Testes
 
@@ -117,12 +159,14 @@ test/                   ← testes com Node (node --test)
 npm test
 ```
 
-`silence.test.js` testa a detecção com WAVs sintéticos. `premiere.mock.test.js` testa a lógica de corte contra uma timeline simulada.
+- `silence.test.js` testa a detecção com WAVs sintéticos.
+- `premiere.mock.test.js` testa a versão UXP contra uma timeline simulada.
+- `cep.host.test.js` roda o ExtendScript da versão CEP no Node, com um Premiere e um QE DOM simulados.
 
 ## Checklist de validação no Premiere
 
 - [ ] O painel abre, o tema fica legível e dá para rolar; o botão "Decupar" fica sempre visível.
-- [ ] Selecionar um clipe atualiza o painel na hora; tirar a seleção desativa o botão.
+- [ ] Selecionar um clipe atualiza o painel em até 1 segundo.
 - [ ] Durante a exportação só a trilha do clipe fica audível, e o mute das trilhas volta ao normal depois.
 - [ ] A exportação WAV com o preset funciona e o arquivo é lido.
 - [ ] "Só marcar" cria marcadores nos lugares certos.
@@ -133,11 +177,12 @@ npm test
 
 ## Roadmap
 
-- [ ] Undo em um passo só (agrupar transações).
+- [ ] Undo em um passo só.
 - [x] Analisar só o clipe selecionado, em vez da mixagem.
-- [ ] Cortar só as trilhas do clipe selecionado (hoje o razor corta todas).
+- [x] Versão CEP para cortar em Premiere anterior à 27.1.
+- [ ] Cortar só as trilhas do clipe selecionado (hoje o corte pega todas).
 - [ ] Respeitar in/out da sequência.
-- [x] Empacotar `.ccx` e publicar nos Releases.
+- [x] Empacotar `.ccx` / `.zxp` e publicar nos Releases.
 - [ ] Publicar no Adobe Marketplace.
 
 ## Licença
