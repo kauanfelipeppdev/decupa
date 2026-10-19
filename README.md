@@ -15,6 +15,21 @@ O Decupa vem em duas versões, com a mesma interface e a mesma detecção de sil
 
 Na dúvida, use a **versão CEP** (`.zxp`): ela também funciona nas versões mais novas enquanto a Adobe mantiver o CEP no Premiere. Para ver sua versão: *Ajuda > Sobre o Premiere Pro*.
 
+## Guia rápido (do download ao primeiro corte)
+
+1. **Baixe o Decupa:**
+   - Premiere até 27.0 (ex.: 26.2): [**Decupa.zxp**](https://github.com/kauanfelipeppdev/decupa/releases/latest/download/Decupa.zxp)
+   - Premiere 27.1 ou mais novo: [**Decupa.ccx**](https://github.com/kauanfelipeppdev/decupa/releases/latest/download/Decupa.ccx)
+2. **Baixe e instale o [ZXP/UXP Installer](https://aescripts.com/learn/zxp-installer/)** (gratuito).
+3. **Feche o Premiere**, abra o ZXP/UXP Installer e **arraste o arquivo baixado** para a janela dele. Espere a mensagem de instalação concluída.
+4. **Abra o Premiere** e o painel:
+   - `.zxp`: *Janela > Extensões > Decupa*
+   - `.ccx`: *Janela > Plug-ins UXP > Decupa*
+5. **Crie o preset WAV** (só na primeira vez; passo a passo em [Preset de áudio WAV](#preset-de-áudio-wav-uma-vez-só)) e escolha ele no painel em **Escolher…**.
+6. **Selecione o clipe** na timeline (o nome dele aparece no painel), escolha a **Ação** e clique em **Decupar clipe selecionado**.
+
+Dica: na primeira vez, use **"Só marcar"** para conferir onde o Decupa vai cortar, e mantenha **"Trabalhar numa cópia da sequência"** ligado ao usar **"Remover"**.
+
 ## Como funciona
 
 1. **Selecione o clipe** que quer decupar na timeline (por exemplo, o clipe principal com câmera + voz). O painel detecta a seleção sozinho e mostra o nome e o trecho do clipe. Sem nada selecionado, o botão pede para você selecionar um clipe.
@@ -35,7 +50,16 @@ Por padrão, o plugin trabalha numa **cópia da sequência**, então a original 
 
 ## Instalação (usuário final)
 
-Baixe o arquivo da sua versão (veja a tabela acima) na página de [**Releases**](https://github.com/kauanfelipeppdev/decupa/releases/latest) do GitHub.
+Baixe o arquivo da sua versão (veja a tabela acima) na página de [**Releases**](https://github.com/kauanfelipeppdev/decupa/releases/latest) do GitHub, ou direto pelos links: [Decupa.zxp](https://github.com/kauanfelipeppdev/decupa/releases/latest/download/Decupa.zxp) · [Decupa.ccx](https://github.com/kauanfelipeppdev/decupa/releases/latest/download/Decupa.ccx).
+
+### Atualizar e desinstalar
+
+- **Atualizar:** baixe o arquivo da versão nova e instale por cima, do mesmo jeito. Depois, feche e abra o Premiere. Se o painel continuar igual, desinstale (abaixo) e instale de novo.
+- **Desinstalar a versão CEP (`.zxp`):** no Prompt de Comando, rode o ExManCmd que vem com o ZXP/UXP Installer:
+  ```bat
+  "%LOCALAPPDATA%\Programs\ZXPInstaller\resources\app\bin\WINDOWS\ExManCmd.exe" /remove io.github.decupa.cep
+  ```
+- **Desinstalar a versão UXP (`.ccx`):** pelo app Creative Cloud (*Plug-ins > Gerenciar plug-ins*) ou com o UPIA (`/remove "Decupa"`, veja abaixo).
 
 ### Com o ZXP/UXP Installer (recomendado)
 
