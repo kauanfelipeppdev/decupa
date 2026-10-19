@@ -1,0 +1,4 @@
+node_modules/
+*.ccx
+.DS_Store
+Thumbs.db

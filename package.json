@@ -1,0 +1,10 @@
+{
+  "name": "decupa",
+  "version": "0.1.0",
+  "description": "Plugin gratuito e open source para Premiere Pro que remove silêncios automaticamente.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test"
+  }
+}
