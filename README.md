@@ -24,7 +24,20 @@ Por padrão, o plugin trabalha numa **cópia da sequência**, então a original 
 
 ## Instalação (usuário final)
 
-Baixe o arquivo `Decupa.ccx` na página de **Releases** do GitHub.
+Baixe o arquivo `Decupa.ccx` na página de [**Releases**](https://github.com/kauanfelipeppdev/decupa/releases/latest) do GitHub.
+
+### Com o ZXP/UXP Installer (recomendado)
+
+O [ZXP/UXP Installer](https://aescripts.com/learn/zxp-installer/) da aescripts é gratuito, funciona no Windows e no macOS e instala arquivos `.ccx` de qualquer desenvolvedor.
+
+1. Baixe e instale o programa pelo link: <https://aescripts.com/learn/zxp-installer/>.
+2. Abra o Premiere Pro ao menos uma vez e **feche-o** antes de instalar.
+3. Abra o ZXP/UXP Installer e **arraste o `Decupa.ccx`** para a janela do programa (ou use *File > Open* e escolha o arquivo).
+   - No Windows, não arraste direto de dentro de um `.zip`: extraia antes (por exemplo, na Área de Trabalho).
+4. Se aparecer o aviso "no compatible applications were found", clique em **Install** mesmo assim.
+5. Abra o Premiere e procure o painel em *Janela > Plug-ins UXP > Decupa*.
+
+Se o instalador travar ou falhar, atualize o app Creative Cloud: o ZXP/UXP Installer usa o instalador de plugins da Adobe (UPIA) por baixo. Mais ajuda no [FAQ oficial](https://aescripts.com/knowledgebase/index/view/faq/zxp-installer-faq).
 
 ### Com o app Creative Cloud
 
@@ -118,7 +131,8 @@ npm test
 - [ ] Undo em um passo só (agrupar transações).
 - [ ] Analisar só a trilha de áudio escolhida, em vez da mixagem.
 - [ ] Respeitar in/out da sequência.
-- [ ] Empacotar `.ccx` e publicar nos Releases e no Adobe Marketplace.
+- [x] Empacotar `.ccx` e publicar nos Releases.
+- [ ] Publicar no Adobe Marketplace.
 
 ## Licença
 
