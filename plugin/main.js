@@ -16,6 +16,7 @@ const PRESET_KEY = "decupa.presetPath";
 const state = {
   presetPath: null,
   clip: null, // clipe de áudio selecionado na timeline (ou null)
+  razor: null, // o Premiere tem a API de corte? (null = ainda não sabemos)
   busy: false,
   refreshing: false,
   refreshAgain: false,
@@ -47,8 +48,10 @@ function setProgress(done, total) {
   $("progressBar").style.width = `${Math.round((done / total) * 100)}%`;
 }
 
+// O botão só trava enquanto trabalha: sem clipe selecionado, o clique
+// explica o que fazer em vez de deixar o botão morto.
 function updateButtons() {
-  $("btnRun").disabled = state.busy || !state.clip;
+  $("btnRun").disabled = state.busy;
   $("btnPreset").disabled = state.busy;
 }
 
@@ -118,6 +121,7 @@ async function refreshSelection() {
       try {
         const { sequence } = await premiere.getActiveContext();
         state.clip = await premiere.getSelectedAudio(sequence);
+        showRazorSupport(premiere.hasRazorSupport(sequence));
       } catch {
         state.clip = null;
       }
@@ -126,6 +130,20 @@ async function refreshSelection() {
   } finally {
     state.refreshing = false;
   }
+}
+
+/** Sem a API de corte, avisa no painel e troca a ação para "Só marcar" (uma vez). */
+function showRazorSupport(supported) {
+  const first = state.razor === null;
+  state.razor = supported;
+  const hint = $("modeHint");
+  if (supported) {
+    hint.className = "hint warn hidden";
+    return;
+  }
+  hint.textContent = premiere.razorUnsupportedMessage();
+  hint.className = "hint warn";
+  if (first) $("mode").value = "mark";
 }
 
 /* ---------------- decupar ---------------- */
@@ -164,7 +182,13 @@ async function run() {
   try {
     let { project, sequence } = await premiere.getActiveContext();
     const clip = await premiere.getSelectedAudio(sequence);
-    if (!clip) throw new Error("Selecione um clipe na timeline.");
+    if (!clip) throw new Error("Selecione um clipe na timeline e clique de novo.");
+
+    // Confere a API de corte antes de exportar ou duplicar qualquer coisa.
+    const mode = $("mode").value;
+    if (mode !== "mark" && !premiere.hasRazorSupport(sequence)) {
+      throw new Error(premiere.razorUnsupportedMessage());
+    }
 
     const buffer = await premiere.exportSequenceAudio(
       sequence,
@@ -190,8 +214,8 @@ async function run() {
       return;
     }
 
-    const mode = $("mode").value;
-    if ($("useCopy").checked && mode !== "mark") {
+    const onCopy = $("useCopy").checked && mode !== "mark";
+    if (onCopy) {
       setStatus("Duplicando sequência…");
       sequence = await premiere.duplicateSequence(project, sequence);
     }
@@ -203,7 +227,10 @@ async function run() {
       setStatus(`Aplicando cortes… ${d}/${total}`);
     });
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
-    setStatus(`Pronto: ${done} silêncios ${DONE_VERB[mode]} em ${secs}s.`);
+    setStatus(
+      `Pronto: ${done} silêncios ${DONE_VERB[mode]} em ${secs}s.` +
+        (onCopy ? ` A cópia "${sequence.name}" está aberta; selecione o clipe nela para decupar de novo.` : "")
+    );
   } catch (err) {
     setStatus(String(err.message || err), true);
   } finally {
@@ -238,8 +265,10 @@ $("autoThreshold").addEventListener("change", updateThresholdMode);
 $("btnPreset").addEventListener("click", choosePreset);
 $("btnRun").addEventListener("click", run);
 
-// Sem os eventos de seleção (Premiere antigo), confere a seleção a cada segundo.
-if (!premiere.onSelectionChange(refreshSelection)) setInterval(refreshSelection, 1000);
+// Os eventos de seleção deixam o painel em dia na hora; a releitura periódica
+// cobre versões do Premiere em que eles não chegam (com seleção vazia ela é barata).
+premiere.onSelectionChange(refreshSelection);
+setInterval(refreshSelection, 1500);
 
 try {
   state.presetPath = localStorage.getItem(PRESET_KEY);

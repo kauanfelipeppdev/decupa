@@ -23,7 +23,7 @@ Por padrão, o plugin trabalha numa **cópia da sequência**, então a original 
 ## Requisitos
 
 - Premiere Pro **25.6+** para o painel e o modo "Só marcar".
-- Premiere Pro **27.1+** para cortar ou remover (API de razor).
+- Premiere Pro **27.1+** para cortar ou remover (API de razor). Em versões anteriores (ex.: 26.2) o painel avisa e usa o modo "Só marcar".
 - [UXP Developer Tool (UDT)](https://developer.adobe.com/premiere-pro/uxp/introduction/), instalado pelo Creative Cloud, para carregar o plugin em desenvolvimento.
 
 ## Instalação (usuário final)

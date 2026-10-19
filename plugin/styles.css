@@ -103,6 +103,10 @@ h2 {
   font-size: 11px;
 }
 
+.hint.warn {
+  color: #e8a33d;
+}
+
 section {
   padding: 10px;
   margin-bottom: 10px;

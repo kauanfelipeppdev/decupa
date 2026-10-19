@@ -33,6 +33,23 @@ function hasRazorSupport(sequence) {
   return typeof editor.createRazorAllTracksAction === "function";
 }
 
+/** Versão do Premiere em execução (ex.: "26.2.0"), ou "" se não der para saber. */
+function hostVersion() {
+  try {
+    return String(uxp.host.version || "");
+  } catch {
+    return "";
+  }
+}
+
+function razorUnsupportedMessage() {
+  const v = hostVersion();
+  return (
+    `${v ? `Seu Premiere (${v})` : "Esta versão do Premiere"} não tem a API de corte (razor), ` +
+    'que chegou na 27.1. Atualize o Premiere ou use o modo "Só marcar".'
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Seleção na timeline                                                */
 /* ------------------------------------------------------------------ */
@@ -302,11 +319,7 @@ async function applySilences(project, sequence, silences, mode, onProgress = () 
     return { done: silences.length };
   }
 
-  if (!hasRazorSupport(sequence)) {
-    throw new Error(
-      "Esta versão do Premiere não tem a API de corte (razor). Atualize para a 27.1+ ou use o modo \"Só marcar\"."
-    );
-  }
+  if (!hasRazorSupport(sequence)) throw new Error(razorUnsupportedMessage());
 
   const editor = ppro.SequenceEditor.getEditor(sequence);
   const tracks = await getAllTracks(sequence);
@@ -358,6 +371,7 @@ async function applySilences(project, sequence, silences, mode, onProgress = () 
 module.exports = {
   getActiveContext,
   hasRazorSupport,
+  razorUnsupportedMessage,
   getSelectedAudio,
   onSelectionChange,
   exportSequenceAudio,
