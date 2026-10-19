@@ -2,7 +2,7 @@
 
 Plugin **gratuito e open source** para Adobe Premiere Pro que faz a decupagem automática: detecta e remove os silêncios do clipe selecionado, direto num painel dentro do Premiere.
 
-> Status: **v0.3, protótipo.** A detecção de silêncio e a lógica de corte estão testadas contra um Premiere simulado, mas ainda precisam ser validadas dentro do Premiere de verdade.
+> Status: **v0.3, protótipo.** A versão CEP foi validada no Premiere Pro 26.2 (Windows): marcar, desativar e remover com ripple funcionam. A versão UXP ainda não foi testada num Premiere 27.1+.
 
 ## Qual versão usar
 
@@ -167,13 +167,16 @@ npm test
 
 ## Checklist de validação no Premiere
 
+Marcado = validado na versão CEP, Premiere 26.2, Windows.
+
+
 - [ ] O painel abre, o tema fica legível e dá para rolar; o botão "Decupar" fica sempre visível.
-- [ ] Selecionar um clipe atualiza o painel em até 1 segundo.
+- [x] Selecionar um clipe atualiza o painel em até 1 segundo.
 - [ ] Durante a exportação só a trilha do clipe fica audível, e o mute das trilhas volta ao normal depois.
-- [ ] A exportação WAV com o preset funciona e o arquivo é lido.
-- [ ] "Só marcar" cria marcadores nos lugares certos.
-- [ ] "Desativar" corta e desativa os trechos certos em vídeo e áudio.
-- [ ] "Remover" faz o ripple sem dessincronizar as trilhas.
+- [x] A exportação WAV com o preset funciona e o arquivo é lido.
+- [x] "Só marcar" cria marcadores nos lugares certos.
+- [x] "Desativar" corta e desativa os trechos certos em vídeo e áudio.
+- [x] "Remover" faz o ripple sem dessincronizar as trilhas.
 - [ ] A duplicação da sequência abre a cópia como ativa.
 - [ ] O desempenho com mais de 200 cortes é aceitável.
 
