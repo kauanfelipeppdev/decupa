@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Formato 7.0 / CSXS 9.0: o ExManCmd usado pelo ZXP Installer recusa manifestos 11.0 (erro -268). -->
-<ExtensionManifest Version="7.0" ExtensionBundleId="io.github.decupa.cep" ExtensionBundleVersion="0.3.1" ExtensionBundleName="Decupa" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<ExtensionManifest Version="7.0" ExtensionBundleId="io.github.decupa.cep" ExtensionBundleVersion="0.3.2" ExtensionBundleName="Decupa" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <ExtensionList>
-    <Extension Id="io.github.decupa.cep.panel" Version="0.3.1" />
+    <Extension Id="io.github.decupa.cep.panel" Version="0.3.2" />
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>

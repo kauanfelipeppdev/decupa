@@ -24,6 +24,7 @@ function createPremiere() {
   const log = [];
   const markers = [];
   const files = new Set();
+  const presets = new Set(["/p/wav.epr"]);
   const all = () => [...tracks.video, ...tracks.audio];
 
   function makeItem(start, end, name = "clipe") {
@@ -92,8 +93,9 @@ function createPremiere() {
     },
     getSelection: () => all().flat().filter((it) => it.selected),
     getSettings: () => ({ videoFrameRate: { seconds: 1 / 30 }, videoDisplayFormat: 101 }),
-    exportAsMediaDirect: (out) => {
+    exportAsMediaDirect: (out, preset) => {
       log.push(`export muted=${JSON.stringify(tracks.audio.map((_, i) => Boolean(muted[i])))}`);
+      log.push(`export to ${out} with ${preset}`);
       files.add(out);
       return "";
     },
@@ -132,8 +134,17 @@ function createPremiere() {
       this.getFormatted = () => `TC:${this.seconds}`;
     },
     File: function File(p) {
-      this.exists = files.has(p);
+      this.fsName = String(p).replace(/\//g, "\\");
+      this.exists = files.has(this.fsName) || presets.has(p);
     },
+    Folder: Object.assign(
+      function Folder(p) {
+        this.fsName = String(p).replace(/\//g, "\\");
+        this.exists = true;
+        this.create = () => true;
+      },
+      { userData: { fsName: "C:\\Users\\Kauan Pereira\\AppData\\Roaming" } }
+    ),
   };
   vm.createContext(ctx);
   vm.runInContext(JSX, ctx);
@@ -175,8 +186,11 @@ test("cep: exporta com só a trilha do clipe audível e restaura os mutes", () =
   p.tracks.audio.push([p.makeItem(0, 30, "musica")], [p.makeItem(0, 30, "sfx")]);
   p.muted[0] = true; // trilha do clipe estava mutada
   p.muted[2] = true;
-  const res = p.call("decupa_exportAudio", "/tmp/a.wav", "/p/wav.epr", "0");
+  const res = p.call("decupa_exportAudio", "/p/wav.epr", "0");
   assert.equal(res.ok, true);
+  // Caminho nativo e longo dentro do AppData, nunca a pasta temporária curta.
+  assert.match(res.data.path, /^C:\\Users\\Kauan Pereira\\AppData\\Roaming\\Decupa\\decupa_\d+\.wav$/);
+  assert.ok(p.log.includes(`export to ${res.data.path} with \\p\\wav.epr`), p.log.join("\n"));
   assert.ok(p.log.includes("export muted=[false,true,true]"), p.log.join("\n"));
   assert.deepEqual(p.muted.map(Boolean), [true, false, true]);
 });
@@ -184,9 +198,17 @@ test("cep: exporta com só a trilha do clipe audível e restaura os mutes", () =
 test("cep: exportação sem arquivo gerado vira erro legível", () => {
   const p = createPremiere();
   p.ctx.app.project.activeSequence.exportAsMediaDirect = () => "falhou";
-  const res = p.call("decupa_exportAudio", "/tmp/b.wav", "/p/wav.epr", "0");
+  const res = p.call("decupa_exportAudio", "/p/wav.epr", "0");
   assert.equal(res.ok, false);
   assert.match(res.error, /não gerou o arquivo/);
+});
+
+test("cep: preset inexistente vira erro antes de exportar", () => {
+  const p = createPremiere();
+  const res = p.call("decupa_exportAudio", "/nao/existe.epr", "0");
+  assert.equal(res.ok, false);
+  assert.match(res.error, /Preset não encontrado/);
+  assert.equal(p.log.length, 0);
 });
 
 test("cep: remover corta com o razor do QE e fecha os buracos (ripple)", () => {

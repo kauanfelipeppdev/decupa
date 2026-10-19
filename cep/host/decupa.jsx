@@ -115,13 +115,26 @@ function decupa_getSelection() {
 /* ------------------------------------------------------------------ */
 
 /**
- * Exporta o áudio da sequência ativa como WAV com o preset escolhido.
- * Só as trilhas de áudio em keepCsv (ex.: "0,2") ficam audíveis; as outras
- * são mutadas durante a exportação e voltam ao estado original depois.
+ * Exporta o áudio da sequência ativa como WAV com o preset escolhido e
+ * devolve o caminho do arquivo. Só as trilhas de áudio em keepCsv (ex.: "0,2")
+ * ficam audíveis; as outras são mutadas durante a exportação e voltam ao
+ * estado original depois.
+ *
+ * O WAV vai para <AppData>/Decupa com caminho nativo (fsName): a exportação
+ * do Premiere falha com "Unknown Error" em caminhos curtos do Windows
+ * (C:\Users\NOME~1\...), que é o que a pasta temporária usa quando o nome
+ * do usuário tem espaço.
  */
-function decupa_exportAudio(outPath, presetPath, keepCsv) {
+function decupa_exportAudio(presetPath, keepCsv) {
   var seq = app.project.activeSequence;
   if (!seq) return decupa_err("Nenhuma sequência ativa.");
+
+  var preset = new File(presetPath);
+  if (!preset.exists) return decupa_err("Preset não encontrado: " + presetPath);
+
+  var folder = new Folder(Folder.userData.fsName + "/Decupa");
+  if (!folder.exists) folder.create();
+  var outPath = new File(folder.fsName + "/decupa_" + new Date().getTime() + ".wav").fsName;
 
   var keep = {};
   var ids = String(keepCsv || "").split(",");
@@ -139,7 +152,7 @@ function decupa_exportAudio(outPath, presetPath, keepCsv) {
         changed.push([track, wasMuted]);
       }
     }
-    result = seq.exportAsMediaDirect(outPath, presetPath, app.encoder.ENCODE_ENTIRE);
+    result = seq.exportAsMediaDirect(outPath, preset.fsName, app.encoder.ENCODE_ENTIRE);
   } catch (e) {
     return decupa_err(e);
   } finally {
@@ -154,7 +167,8 @@ function decupa_exportAudio(outPath, presetPath, keepCsv) {
   if (!file.exists) {
     return decupa_err(
       "O Premiere não gerou o arquivo de áudio." + (result ? " (" + result + ")" : "") +
-        " Confira se o preset é de Waveform Audio (.wav)."
+        " Confira se o preset é de Waveform Audio (.wav). Saída: " + outPath +
+        " | Preset: " + preset.fsName
     );
   }
   return decupa_ok({ path: outPath });

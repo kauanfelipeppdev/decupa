@@ -11,7 +11,6 @@
 // Com --mixed-context o require do Node é global; sem ele, fica em cep_node.
 const nodeRequire = typeof cep_node !== "undefined" && cep_node.require ? cep_node.require : require;
 const fs = nodeRequire("fs");
-const os = nodeRequire("os");
 const path = nodeRequire("path");
 
 const $ = (id) => document.getElementById(id);
@@ -177,9 +176,8 @@ function showResult(silences, clip) {
 
 async function exportClipAudio(clip) {
   if (!state.presetPath) throw new Error("Escolha um preset de exportação WAV (.epr).");
-  const outPath = path.join(os.tmpdir(), `decupa_${Date.now()}.wav`).replace(/\\/g, "/");
   setStatus("Exportando o áudio do clipe…");
-  await host("decupa_exportAudio", outPath, state.presetPath.replace(/\\/g, "/"), clip.trackIndices.join(","));
+  const { path: outPath } = await host("decupa_exportAudio", state.presetPath, clip.trackIndices.join(","));
   try {
     const buf = fs.readFileSync(outPath);
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
