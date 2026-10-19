@@ -5,22 +5,25 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <main id="content">
     <header>
       <h1>Decupa</h1>
       <span class="sub">corte automático de silêncios</span>
     </header>
 
     <section>
-      <h2>1. Áudio</h2>
+      <h2>1. Clipe</h2>
+      <div id="clipBox" class="clip empty">
+        <span id="clipName">Selecione um clipe na timeline</span>
+        <span id="clipInfo" class="muted"></span>
+      </div>
       <div class="preset">
         <span id="presetName" class="muted">Nenhum preset WAV escolhido</span>
         <button id="btnPreset" class="ghost">Escolher…</button>
       </div>
-      <p class="hint">Trilhas mutadas (ex.: música) são ignoradas na análise.</p>
-      <button id="btnAnalyze" class="primary">Analisar sequência ativa</button>
     </section>
 
-    <section id="paramsSection" class="disabled">
+    <section>
       <h2>2. Ajustes</h2>
 
       <div class="field">
@@ -30,7 +33,10 @@
         </div>
         <div class="slider-row">
           <input id="threshold" type="range" min="-70" max="-10" step="1" value="-40" />
-          <button id="btnAuto" class="ghost small">Auto</button>
+          <label class="check inline">
+            <input id="autoThreshold" type="checkbox" checked />
+            Automático
+          </label>
         </div>
       </div>
 
@@ -65,17 +71,10 @@
         </div>
         <input id="minSpeech" type="range" min="0" max="0.5" step="0.01" value="0.1" />
       </div>
-
-      <div id="preview" class="preview"><div id="previewRegions"></div></div>
-      <div class="stats">
-        <div><strong id="statCount">0</strong><span>cortes</span></div>
-        <div><strong id="statRemoved">0:00</strong><span>removido</span></div>
-        <div><strong id="statRemaining">0:00</strong><span>resultado</span></div>
-      </div>
     </section>
 
-    <section id="applySection" class="disabled">
-      <h2>3. Aplicar</h2>
+    <section>
+      <h2>3. Decupar</h2>
       <div class="field">
         <label for="mode">Ação</label>
         <select id="mode">
@@ -88,11 +87,22 @@
         <input id="useCopy" type="checkbox" checked />
         Trabalhar numa cópia da sequência
       </label>
-      <button id="btnApply" class="primary">Aplicar cortes</button>
+      <div id="result" class="hidden">
+        <div id="preview" class="preview"><div id="previewRegions"></div></div>
+        <div class="stats">
+          <div><strong id="statCount">0</strong><span>cortes</span></div>
+          <div><strong id="statRemoved">0:00</strong><span>removido</span></div>
+          <div><strong id="statRemaining">0:00</strong><span>resultado</span></div>
+        </div>
+      </div>
     </section>
+    </main>
 
-    <div id="progress" class="progress hidden"><div id="progressBar"></div></div>
-    <p id="status" class="status"></p>
+    <footer>
+      <div id="progress" class="progress hidden"><div id="progressBar"></div></div>
+      <button id="btnRun" class="primary" disabled>Decupar clipe selecionado</button>
+      <p id="status" class="status"></p>
+    </footer>
 
     <script src="main.js"></script>
   </body>

@@ -5,6 +5,7 @@ const {
   computeLevels,
   suggestThreshold,
   detectSilences,
+  detectSilencesInRange,
   summarize,
 } = require("../plugin/lib/silence.js");
 
@@ -161,4 +162,27 @@ test("summarize soma o tempo removido", () => {
   assert.equal(s.count, 2);
   assert.equal(s.removed, 1.5);
   assert.equal(s.percent, 15);
+});
+
+test("detecta só dentro do intervalo do clipe, em tempos da timeline", () => {
+  // 0-2 silêncio | 2-4 fala | 4-5 silêncio | 5-7 fala | 7-9 silêncio
+  const lv = computeLevels(
+    parseWav(makeWav([
+      { dur: 2, amp: 0 },
+      { dur: 2, amp: 0.4 },
+      { dur: 1, amp: 0 },
+      { dur: 2, amp: 0.4 },
+      { dur: 2, amp: 0 },
+    ]))
+  );
+  const opts = { padBefore: 0, padAfter: 0, minSilence: 0.5 };
+  // Clipe de 2s a 7s: o silêncio antes e depois dele fica de fora.
+  const r = detectSilencesInRange(lv, 2, 7, opts);
+  assert.equal(r.length, 1);
+  assert.ok(near(r[0].start, 4) && near(r[0].end, 5), JSON.stringify(r));
+
+  // Clipe de 3s a 9s: o silêncio do fim termina exatamente no fim do clipe.
+  const r2 = detectSilencesInRange(lv, 3, 9, opts);
+  assert.equal(r2.length, 2);
+  assert.ok(near(r2[1].start, 7) && r2[1].end === 9, JSON.stringify(r2));
 });

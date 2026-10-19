@@ -1,5 +1,9 @@
 /**
  * Painel do Decupa: liga a interface ao núcleo de detecção e à API do Premiere.
+ *
+ * Fluxo: o painel acompanha o clipe selecionado na timeline; o botão
+ * "Decupar" exporta só o áudio desse clipe, detecta os silêncios dentro
+ * dele e aplica os cortes (vídeo e áudio juntos).
  */
 
 const uxp = require("uxp");
@@ -11,10 +15,10 @@ const PRESET_KEY = "decupa.presetPath";
 
 const state = {
   presetPath: null,
-  levels: null, // níveis de áudio da última análise
-  sequenceGuid: null, // sequência analisada
-  silences: [],
+  clip: null, // clipe de áudio selecionado na timeline (ou null)
   busy: false,
+  refreshing: false,
+  refreshAgain: false,
 };
 
 /* ---------------- utilidades de UI ---------------- */
@@ -43,14 +47,14 @@ function setProgress(done, total) {
   $("progressBar").style.width = `${Math.round((done / total) * 100)}%`;
 }
 
-function setBusy(busy) {
-  state.busy = busy;
-  for (const id of ["btnAnalyze", "btnApply", "btnPreset", "btnAuto"]) $(id).disabled = busy;
+function updateButtons() {
+  $("btnRun").disabled = state.busy || !state.clip;
+  $("btnPreset").disabled = state.busy;
 }
 
-function enableSections(enabled) {
-  $("paramsSection").className = enabled ? "" : "disabled";
-  $("applySection").className = enabled ? "" : "disabled";
+function setBusy(busy) {
+  state.busy = busy;
+  updateButtons();
 }
 
 function getOptions() {
@@ -88,74 +92,102 @@ async function choosePreset() {
   showPreset();
 }
 
-/* ---------------- análise e pré-visualização ---------------- */
+/* ---------------- clipe selecionado ---------------- */
 
-function recompute() {
-  if (!state.levels) return;
-  state.silences = silence.detectSilences(state.levels, getOptions());
-  const sum = silence.summarize(state.silences, state.levels.duration);
+function showClip() {
+  const clip = state.clip;
+  $("clipBox").className = clip ? "clip" : "clip empty";
+  $("clipName").textContent = clip ? clip.name || "Clipe sem nome" : "Selecione um clipe na timeline";
+  $("clipInfo").textContent = clip
+    ? `${fmtTime(clip.start)} – ${fmtTime(clip.end)}` + (clip.clips > 1 ? ` · ${clip.clips} clipes` : "")
+    : "";
+  updateButtons();
+}
 
+/** Relê a seleção da timeline. Chamadas seguidas viram uma só releitura extra. */
+async function refreshSelection() {
+  if (state.busy) return; // os próprios cortes mexem na seleção; relê no fim
+  if (state.refreshing) {
+    state.refreshAgain = true;
+    return;
+  }
+  state.refreshing = true;
+  try {
+    do {
+      state.refreshAgain = false;
+      try {
+        const { sequence } = await premiere.getActiveContext();
+        state.clip = await premiere.getSelectedAudio(sequence);
+      } catch {
+        state.clip = null;
+      }
+      showClip();
+    } while (state.refreshAgain);
+  } finally {
+    state.refreshing = false;
+  }
+}
+
+/* ---------------- decupar ---------------- */
+
+function showResult(silences, clip) {
+  const duration = clip.end - clip.start;
+  const sum = silence.summarize(silences, duration);
   $("statCount").textContent = String(sum.count);
   $("statRemoved").textContent = `${fmtTime(sum.removed)} (${Math.round(sum.percent)}%)`;
   $("statRemaining").textContent = fmtTime(sum.remaining);
 
-  // Barra de pré-visualização: cinza = fala, vermelho = vai sair.
+  // Barra do clipe: cinza = fala, vermelho = silêncio cortado.
   const box = $("previewRegions");
   box.innerHTML = "";
-  const total = state.levels.duration || 1;
-  const maxDraw = 1500; // evita milhares de divs em vídeos muito longos
-  const step = Math.max(1, Math.ceil(state.silences.length / maxDraw));
-  for (let i = 0; i < state.silences.length; i += step) {
-    const r = state.silences[i];
+  const total = duration || 1;
+  const maxDraw = 1500; // evita milhares de divs em clipes muito longos
+  const step = Math.max(1, Math.ceil(silences.length / maxDraw));
+  for (let i = 0; i < silences.length; i += step) {
+    const r = silences[i];
     const d = document.createElement("div");
     d.className = "region";
-    d.style.left = `${(r.start / total) * 100}%`;
+    d.style.left = `${((r.start - clip.start) / total) * 100}%`;
     d.style.width = `${Math.max(0.15, ((r.end - r.start) / total) * 100)}%`;
     box.appendChild(d);
   }
+  $("result").className = "";
 }
 
-async function analyze() {
+const DONE_VERB = { remove: "cortados", disable: "desativados", mark: "marcados" };
+
+async function run() {
   if (state.busy) return;
   setBusy(true);
   setProgress(0, 0);
-  try {
-    const { sequence } = await premiere.getActiveContext();
-    const buffer = await premiere.exportSequenceAudio(sequence, state.presetPath, setStatus);
-    setStatus("Analisando níveis de áudio…");
-    const wav = silence.parseWav(buffer);
-    state.levels = silence.computeLevels(wav, 0.01);
-    state.sequenceGuid = sequence.guid.toString();
-    enableSections(true);
-    recompute();
-    setStatus(`Sequência "${sequence.name}" analisada (${fmtTime(wav.duration)}).`);
-  } catch (err) {
-    setStatus(String(err.message || err), true);
-  } finally {
-    setBusy(false);
-  }
-}
-
-function autoThreshold() {
-  if (!state.levels) return;
-  const t = Math.min(-10, Math.max(-70, silence.suggestThreshold(state.levels)));
-  $("threshold").value = String(t);
-  updateLabels();
-  recompute();
-}
-
-/* ---------------- aplicar ---------------- */
-
-async function apply() {
-  if (state.busy || state.silences.length === 0) {
-    if (state.silences.length === 0) setStatus("Nenhum silêncio para cortar com esses ajustes.");
-    return;
-  }
-  setBusy(true);
+  $("result").className = "hidden";
   try {
     let { project, sequence } = await premiere.getActiveContext();
-    if (sequence.guid.toString() !== state.sequenceGuid) {
-      throw new Error("A sequência ativa mudou desde a análise. Analise de novo.");
+    const clip = await premiere.getSelectedAudio(sequence);
+    if (!clip) throw new Error("Selecione um clipe na timeline.");
+
+    const buffer = await premiere.exportSequenceAudio(
+      sequence,
+      state.presetPath,
+      setStatus,
+      clip.trackIndices
+    );
+    setStatus("Analisando o áudio do clipe…");
+    const levels = silence.computeLevels(silence.parseWav(buffer), 0.01);
+
+    const opts = getOptions();
+    if ($("autoThreshold").checked) {
+      const part = silence.sliceLevels(levels, clip.start, clip.end);
+      opts.thresholdDb = Math.min(-10, Math.max(-70, silence.suggestThreshold(part)));
+      $("threshold").value = String(opts.thresholdDb);
+      updateLabels();
+    }
+
+    const silences = silence.detectSilencesInRange(levels, clip.start, clip.end, opts);
+    showResult(silences, clip);
+    if (silences.length === 0) {
+      setStatus("Nenhum silêncio encontrado nesse clipe com esses ajustes.");
+      return;
     }
 
     const mode = $("mode").value;
@@ -166,29 +198,18 @@ async function apply() {
 
     setStatus("Aplicando cortes…");
     const t0 = Date.now();
-    const { done } = await premiere.applySilences(
-      project,
-      sequence,
-      state.silences,
-      mode,
-      (d, total) => {
-        setProgress(d, total);
-        setStatus(`Aplicando cortes… ${d}/${total}`);
-      }
-    );
+    const { done } = await premiere.applySilences(project, sequence, silences, mode, (d, total) => {
+      setProgress(d, total);
+      setStatus(`Aplicando cortes… ${d}/${total}`);
+    });
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
-    setStatus(`Pronto: ${done} regiões processadas em ${secs}s.`);
-    // Os tempos mudaram (no modo remover); força nova análise antes de reaplicar.
-    if (mode === "remove") {
-      state.levels = null;
-      state.silences = [];
-      enableSections(false);
-    }
+    setStatus(`Pronto: ${done} silêncios ${DONE_VERB[mode]} em ${secs}s.`);
   } catch (err) {
     setStatus(String(err.message || err), true);
   } finally {
     setBusy(false);
     setTimeout(() => setProgress(0, 0), 1500);
+    refreshSelection();
   }
 }
 
@@ -208,17 +229,17 @@ function updateLabels() {
   }
 }
 
-for (const id of Object.keys(sliders)) {
-  $(id).addEventListener("input", () => {
-    updateLabels();
-    recompute();
-  });
+function updateThresholdMode() {
+  $("threshold").disabled = $("autoThreshold").checked;
 }
 
+for (const id of Object.keys(sliders)) $(id).addEventListener("input", updateLabels);
+$("autoThreshold").addEventListener("change", updateThresholdMode);
 $("btnPreset").addEventListener("click", choosePreset);
-$("btnAnalyze").addEventListener("click", analyze);
-$("btnAuto").addEventListener("click", autoThreshold);
-$("btnApply").addEventListener("click", apply);
+$("btnRun").addEventListener("click", run);
+
+// Sem os eventos de seleção (Premiere antigo), confere a seleção a cada segundo.
+if (!premiere.onSelectionChange(refreshSelection)) setInterval(refreshSelection, 1000);
 
 try {
   state.presetPath = localStorage.getItem(PRESET_KEY);
@@ -227,3 +248,5 @@ try {
 }
 showPreset();
 updateLabels();
+updateThresholdMode();
+refreshSelection();

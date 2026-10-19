@@ -6,15 +6,19 @@ Plugin **gratuito e open source** para Adobe Premiere Pro que faz a decupagem au
 
 ## Como funciona
 
-1. O painel exporta o áudio da sequência ativa como WAV, usando o próprio Premiere. Trilhas mutadas ficam de fora, então você pode mutar a música de fundo antes de analisar.
-2. O áudio é analisado em JavaScript puro: nível em dB a cada 10 ms, regiões abaixo do limiar, margens e filtro de ruídos curtos.
-3. Os ajustes atualizam a pré-visualização em tempo real, sem exportar de novo.
-4. Ao aplicar, o plugin corta todas as trilhas no início e no fim de cada silêncio e então:
-   - **Remover (ripple):** apaga os trechos e fecha os buracos.
-   - **Desativar:** desativa os trechos sem mover nada.
-   - **Só marcar:** adiciona marcadores nas regiões, sem cortar.
+1. **Selecione o clipe** que quer decupar na timeline (por exemplo, o clipe principal com câmera + voz). O painel detecta a seleção sozinho e mostra o nome e o trecho do clipe. Sem nada selecionado, o botão fica desativado.
+2. Clique em **Decupar clipe selecionado**. O plugin:
+   - exporta só o áudio desse clipe como WAV, usando o próprio Premiere (as outras trilhas de áudio ficam mutadas durante a exportação e voltam ao estado original depois, então música e efeitos não atrapalham);
+   - analisa o áudio em JavaScript puro: nível em dB a cada 10 ms, regiões abaixo do limiar, margens e filtro de ruídos curtos. Com **Automático** marcado, o limiar é calculado a partir do próprio clipe;
+   - corta vídeo e áudio juntos no início e no fim de cada silêncio, só dentro do trecho do clipe, e então:
+     - **Remover (ripple):** apaga os trechos e fecha os buracos.
+     - **Desativar:** desativa os trechos sem mover nada.
+     - **Só marcar:** adiciona marcadores nas regiões, sem cortar.
+3. No fim, o painel mostra quantos cortes foram feitos e quanto tempo saiu.
 
 Por padrão, o plugin trabalha numa **cópia da sequência**, então a original fica intacta.
+
+> **Limitação conhecida:** a API de corte do Premiere corta **todas as trilhas** no mesmo instante. Se houver outra coisa no mesmo trecho do clipe (uma música numa trilha de baixo, por exemplo), ela também será cortada nesses pontos. Para o caso de um clipe principal sozinho na timeline, isso não faz diferença.
 
 ## Requisitos
 
@@ -117,9 +121,10 @@ npm test
 
 ## Checklist de validação no Premiere
 
-- [ ] O painel abre e o tema fica legível.
+- [ ] O painel abre, o tema fica legível e dá para rolar; o botão "Decupar" fica sempre visível.
+- [ ] Selecionar um clipe atualiza o painel na hora; tirar a seleção desativa o botão.
+- [ ] Durante a exportação só a trilha do clipe fica audível, e o mute das trilhas volta ao normal depois.
 - [ ] A exportação WAV com o preset funciona e o arquivo é lido.
-- [ ] Os sliders atualizam a barra de pré-visualização.
 - [ ] "Só marcar" cria marcadores nos lugares certos.
 - [ ] "Desativar" corta e desativa os trechos certos em vídeo e áudio.
 - [ ] "Remover" faz o ripple sem dessincronizar as trilhas.
@@ -129,7 +134,8 @@ npm test
 ## Roadmap
 
 - [ ] Undo em um passo só (agrupar transações).
-- [ ] Analisar só a trilha de áudio escolhida, em vez da mixagem.
+- [x] Analisar só o clipe selecionado, em vez da mixagem.
+- [ ] Cortar só as trilhas do clipe selecionado (hoje o razor corta todas).
 - [ ] Respeitar in/out da sequência.
 - [x] Empacotar `.ccx` e publicar nos Releases.
 - [ ] Publicar no Adobe Marketplace.

@@ -231,6 +231,27 @@ function round(x) {
   return Math.round(x * 1000) / 1000;
 }
 
+/** Recorta os níveis para o intervalo [start, end] (em segundos). */
+function sliceLevels(levels, start, end) {
+  const { db, windowSec } = levels;
+  const a = Math.min(db.length, Math.max(0, Math.round(start / windowSec)));
+  const b = Math.min(db.length, Math.max(a, Math.round(end / windowSec)));
+  const duration = Math.max(0, Math.min(end, levels.duration) - start);
+  return { db: db.subarray(a, b), windowSec, duration };
+}
+
+/**
+ * Igual a detectSilences, mas só olha o intervalo [start, end] do áudio
+ * (o trecho do clipe selecionado). Devolve tempos absolutos da timeline.
+ */
+function detectSilencesInRange(levels, start, end, opts = {}) {
+  const part = sliceLevels(levels, start, end);
+  return detectSilences(part, opts).map((r) => ({
+    start: round(r.start + start),
+    end: round(Math.min(end, r.end + start)),
+  }));
+}
+
 /** Totais para mostrar no painel. */
 function summarize(silences, duration) {
   const removed = silences.reduce((acc, r) => acc + (r.end - r.start), 0);
@@ -247,6 +268,8 @@ module.exports = {
   computeLevels,
   suggestThreshold,
   detectSilences,
+  sliceLevels,
+  detectSilencesInRange,
   summarize,
   MIN_DB,
 };

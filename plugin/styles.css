@@ -10,13 +10,64 @@
   --speech: #4b4b4b;
 }
 
+html,
 body {
+  height: 100%;
+}
+
+/* O painel UXP não rola o body sozinho: o conteúdo rola dentro de <main>
+   e o botão de decupar fica fixo no rodapé, sempre visível. */
+body {
+  display: flex;
+  flex-direction: column;
   margin: 0;
-  padding: 12px;
+  padding: 0;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
   font-size: 12px;
   font-family: system-ui, "Segoe UI", sans-serif;
+}
+
+main {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 12px 2px;
+  overflow-y: auto;
+}
+
+footer {
+  flex: 0 0 auto;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.hidden {
+  display: none;
+}
+
+.clip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+}
+
+.clip.empty {
+  border-style: dashed;
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+#clipName {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 header {
@@ -58,11 +109,6 @@ section {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
-}
-
-section.disabled {
-  opacity: 0.45;
-  pointer-events: none;
 }
 
 button {
@@ -139,6 +185,16 @@ select {
   margin-bottom: 10px;
 }
 
+.check.inline {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+input[type="range"]:disabled {
+  opacity: 0.5;
+}
+
 .preview {
   position: relative;
   height: 22px;
@@ -177,7 +233,7 @@ select {
 
 .progress {
   height: 4px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   border-radius: 2px;
   background: var(--border);
   overflow: hidden;
@@ -195,7 +251,7 @@ select {
 
 .status {
   min-height: 16px;
-  margin: 0;
+  margin: 6px 0 0;
   font-size: 11px;
   color: var(--muted);
 }

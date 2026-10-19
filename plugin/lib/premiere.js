@@ -34,6 +34,60 @@ function hasRazorSupport(sequence) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Seleção na timeline                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Clipes de áudio selecionados na timeline. Devolve null se não houver
+ * nenhum; senão, o intervalo que eles cobrem e as trilhas de áudio onde estão.
+ */
+async function getSelectedAudio(sequence) {
+  // Atalho: seleção vazia é o caso mais comum e não exige varrer as trilhas.
+  const selection = await sequence.getSelection();
+  if (!selection || (await selection.getTrackItems()).length === 0) return null;
+
+  const trackIndices = [];
+  let start = Infinity;
+  let end = -Infinity;
+  let name = null;
+  let clips = 0;
+
+  const count = await sequence.getAudioTrackCount();
+  for (let i = 0; i < count; i++) {
+    const track = await sequence.getAudioTrack(i);
+    const items = await track.getTrackItems(ppro.Constants.TrackItemType.CLIP, false);
+    let used = false;
+    for (const item of items) {
+      if (!(await item.getIsSelected())) continue;
+      start = Math.min(start, (await item.getStartTime()).seconds);
+      end = Math.max(end, (await item.getEndTime()).seconds);
+      if (name === null) name = await item.getName();
+      clips++;
+      used = true;
+    }
+    if (used) trackIndices.push(i);
+  }
+
+  if (clips === 0) return null;
+  return { name, clips, start, end, trackIndices };
+}
+
+/**
+ * Chama `callback` quando a seleção da timeline ou a sequência ativa mudam.
+ * Devolve false se esta versão do Premiere não tiver os eventos.
+ */
+function onSelectionChange(callback) {
+  try {
+    const { SequenceEvent } = ppro.Constants;
+    ppro.EventManager.addGlobalEventListener(SequenceEvent.SELECTION_CHANGED, callback);
+    ppro.EventManager.addGlobalEventListener(SequenceEvent.ACTIVATED, callback);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Exportação do áudio                                                */
 /* ------------------------------------------------------------------ */
 
@@ -72,11 +126,39 @@ async function waitForFile(path, timeoutMs = 10 * 60 * 1000) {
 }
 
 /**
+ * Deixa audíveis só as trilhas de áudio em `keep` e muta as outras.
+ * Devolve uma função que restaura o estado original de cada trilha.
+ */
+async function soloAudioTracks(sequence, keep) {
+  const changed = [];
+  const count = await sequence.getAudioTrackCount();
+  for (let i = 0; i < count; i++) {
+    const track = await sequence.getAudioTrack(i);
+    const wasMuted = await track.isMuted();
+    const mute = !keep.includes(i);
+    if (wasMuted !== mute) {
+      await track.setMute(mute);
+      changed.push([track, wasMuted]);
+    }
+  }
+  return async () => {
+    for (const [track, wasMuted] of changed) {
+      try {
+        await track.setMute(wasMuted);
+      } catch {
+        /* segue restaurando as outras */
+      }
+    }
+  };
+}
+
+/**
  * Exporta o áudio da sequência inteira como WAV, usando o preset (.epr)
  * escolhido pelo usuário, e devolve o conteúdo como ArrayBuffer.
- * Trilhas mutadas não entram na exportação, o que é útil para ignorar música.
+ * Se `soloTracks` for passado, só essas trilhas de áudio entram na
+ * exportação (as outras ficam mutadas durante ela e depois voltam).
  */
-async function exportSequenceAudio(sequence, presetPath, onStatus = () => {}) {
+async function exportSequenceAudio(sequence, presetPath, onStatus = () => {}, soloTracks = null) {
   if (!presetPath) throw new Error("Escolha um preset de exportação WAV (.epr).");
 
   const temp = await uxp.storage.localFileSystem.getTemporaryFolder();
@@ -94,17 +176,21 @@ async function exportSequenceAudio(sequence, presetPath, onStatus = () => {}) {
   const outPath = joinPath(temp.nativePath, `decupa_${Date.now()}.wav`);
   onStatus("Exportando áudio da sequência…");
 
-  const encoder = ppro.EncoderManager.getManager();
-  const ok = await encoder.exportSequence(
-    sequence,
-    ppro.Constants.ExportType.IMMEDIATELY,
-    outPath,
-    presetPath,
-    true // sequência inteira (ignora in/out)
-  );
-  if (ok === false) throw new Error("O Premiere recusou a exportação do áudio.");
-
-  await waitForFile(outPath);
+  const restore = soloTracks ? await soloAudioTracks(sequence, soloTracks) : async () => {};
+  try {
+    const encoder = ppro.EncoderManager.getManager();
+    const ok = await encoder.exportSequence(
+      sequence,
+      ppro.Constants.ExportType.IMMEDIATELY,
+      outPath,
+      presetPath,
+      true // sequência inteira (ignora in/out)
+    );
+    if (ok === false) throw new Error("O Premiere recusou a exportação do áudio.");
+    await waitForFile(outPath);
+  } finally {
+    await restore();
+  }
   onStatus("Lendo áudio…");
   const data = await fs.readFile(outPath);
   fs.unlink(outPath).catch(() => {});
@@ -272,6 +358,8 @@ async function applySilences(project, sequence, silences, mode, onProgress = () 
 module.exports = {
   getActiveContext,
   hasRazorSupport,
+  getSelectedAudio,
+  onSelectionChange,
   exportSequenceAudio,
   duplicateSequence,
   applySilences,
